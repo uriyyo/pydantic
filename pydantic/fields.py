@@ -19,6 +19,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 from . import errors as errors_
@@ -618,6 +619,14 @@ class ModelField(Representation):
         if errors:
             return v, errors
 
+        if self.field_info.extra.get('unique', False):
+            _result, _errors = self._validate_sequence_unique(result, values, loc, cls)
+
+            if _errors:
+                return v, _errors
+
+            result = cast(List[Optional[Any]], _result)
+
         converted: Union[List[Any], Set[Any], FrozenSet[Any], Tuple[Any, ...], Iterator[Any]] = result
 
         if self.shape == SHAPE_SET:
@@ -634,6 +643,20 @@ class ModelField(Representation):
             elif isinstance(v, Generator):
                 converted = iter(result)
         return converted, None
+
+    def _validate_sequence_unique(
+        self, v: Sequence[Any], values: Dict[str, Any], loc: 'LocStr', cls: Optional['ModelOrDc']
+    ) -> 'ValidateReturn':
+        seq = list(v)
+        duplicates = []
+        for v_ in seq:
+            if v_ not in duplicates and seq.count(v_) > 1:
+                duplicates.append(v_)
+
+        if duplicates:
+            return v, ErrorWrapper(errors_.SequenceNotUniqueError(duplicates=duplicates), loc)
+
+        return v, None
 
     def _validate_iterable(
         self, v: Any, values: Dict[str, Any], loc: 'LocStr', cls: Optional['ModelOrDc']

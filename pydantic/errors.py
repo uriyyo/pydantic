@@ -46,6 +46,7 @@ __all__ = (
     'TupleLengthError',
     'ListMinLengthError',
     'ListMaxLengthError',
+    'SequenceNotUniqueError',
     'AnyStrMinLengthError',
     'AnyStrMaxLengthError',
     'StrError',
@@ -280,6 +281,10 @@ class FrozenSetError(PydanticTypeError):
 
 class TupleError(PydanticTypeError):
     msg_template = 'value is not a valid tuple'
+
+
+class SequenceNotUniqueError(PydanticTypeError):
+    msg_template = 'value contains duplicate items {duplicates}'
 
 
 class TupleLengthError(PydanticValueError):

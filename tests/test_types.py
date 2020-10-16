@@ -1002,6 +1002,37 @@ def test_sequence_generator_success(cls, value, result):
     assert list(validated) == list(result)
 
 
+@pytest.mark.parametrize('annotation', [List[int], Tuple[int, ...], Set[int], FrozenSet[int]])
+def test_sequence_unique_success(annotation):
+    value = [0, 1, 2]
+
+    class Model(BaseModel):
+        v: annotation = Field(unique=True)
+
+    validated = Model(v=value).v
+    assert list(validated) == list(value)
+
+
+@pytest.mark.parametrize('annotation', [List[int], Tuple[int, ...], Set[int], FrozenSet[int]])
+def test_sequence_unique_fails(annotation):
+    value = [0, 1, 1]
+
+    class Model(BaseModel):
+        v: annotation = Field(unique=True)
+
+    with pytest.raises(ValidationError) as exc_info:
+        Model(v=value)
+
+    assert exc_info.value.errors() == [
+        {
+            'ctx': {'duplicates': [1]},
+            'loc': ('v',),
+            'msg': 'value contains duplicate items [1]',
+            'type': 'type_error.sequencenotunique',
+        }
+    ]
+
+
 def test_infinite_iterable():
     class Model(BaseModel):
         it: Iterable[int]
