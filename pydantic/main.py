@@ -589,7 +589,7 @@ class BaseModel(Representation, metaclass=ModelMetaclass):
 
     @classmethod
     def validate(cls: Type['Model'], value: Any) -> 'Model':
-        if isinstance(value, dict):
+        if type(value) is dict:
             return cls(**value)
         elif isinstance(value, cls):
             return value.copy()
@@ -883,7 +883,7 @@ def validate_model(  # noqa: C901 (ignore complexity)
             return {}, set(), ValidationError([ErrorWrapper(exc, loc=ROOT_KEY)], cls_)
 
     for name, field in model.__fields__.items():
-        if field.type_.__class__ == ForwardRef:
+        if type(field.type_) is ForwardRef:
             raise ConfigError(
                 f'field "{field.name}" not yet prepared so type is still a ForwardRef, '
                 f'you might need to call {cls_.__name__}.update_forward_refs().'
@@ -911,10 +911,12 @@ def validate_model(  # noqa: C901 (ignore complexity)
                 names_used.add(field.name if using_name else field.alias)
 
         v_, errors_ = field.validate(value, values, loc=field.alias, cls=cls_)
-        if isinstance(errors_, ErrorWrapper):
-            errors.append(errors_)
-        elif isinstance(errors_, list):
-            errors.extend(errors_)
+
+        if errors_:
+            if type(errors_) is list:
+                errors.extend(errors_)
+            else:
+                errors.append(errors_)
         else:
             values[name] = v_
 
@@ -926,11 +928,9 @@ def validate_model(  # noqa: C901 (ignore complexity)
         if extra:
             fields_set |= extra
             if config.extra is Extra.allow:
-                for f in extra:
-                    values[f] = input_data[f]
+                values.update({f: input_data[f] for f in extra})
             else:
-                for f in sorted(extra):
-                    errors.append(ErrorWrapper(ExtraError(), loc=f))
+                errors.extend(ErrorWrapper(ExtraError(), loc=f) for f in extra)
 
     for skip_on_failure, validator in model.__post_root_validators__:
         if skip_on_failure and errors:
