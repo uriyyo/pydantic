@@ -921,20 +921,20 @@ def validate_model(  # noqa: C901 (ignore complexity)
             values[name] = v_
 
     if check_extra:
-        if isinstance(input_data, GetterDict):
-            extra = input_data.extra_keys() - names_used
-        else:
+        if type(input_data) is not GetterDict:
             extra = input_data.keys() - names_used
-        if extra:
-            fields_set |= extra
-            if config.extra is Extra.allow:
-                values.update({f: input_data[f] for f in extra})
-            else:
-                errors.extend(ErrorWrapper(ExtraError(), loc=f) for f in extra)
+
+            if extra:
+                fields_set |= extra
+                if config.extra is Extra.allow:
+                    values.update({f: input_data[f] for f in extra})
+                else:
+                    errors.extend(ErrorWrapper(ExtraError(), loc=f) for f in extra)
 
     for skip_on_failure, validator in model.__post_root_validators__:
         if skip_on_failure and errors:
             continue
+
         try:
             values = validator(cls_, values)
         except (ValueError, TypeError, AssertionError) as exc:
