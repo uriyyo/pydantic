@@ -2,6 +2,7 @@ import datetime
 import re
 import sys
 from collections import deque
+from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 from ipaddress import IPv4Address, IPv4Interface, IPv4Network, IPv6Address, IPv6Interface, IPv6Network
@@ -74,6 +75,11 @@ ENCODERS_BY_TYPE: Dict[Type[Any], Callable[[Any], Any]] = {
 }
 
 
+@dataclass
+class BuiltinWrapper:
+    value: Any
+
+
 def pydantic_encoder(obj: Any) -> Any:
     from dataclasses import asdict, is_dataclass
 
@@ -96,6 +102,9 @@ def pydantic_encoder(obj: Any) -> Any:
 
 
 def custom_pydantic_encoder(type_encoders: Dict[Any, Callable[[Type[Any]], Any]], obj: Any) -> Any:
+    if isinstance(obj, BuiltinWrapper):
+        obj = obj.value
+
     # Check the class type and its superclasses for a matching encoder
     for base in obj.__class__.__mro__[:-1]:
         try:
